@@ -68,7 +68,7 @@ export async function PATCH(req: Request, { params }: Params) {
     const d = Math.min(Math.max(Number(body.retentionDays), 1), 365);
     values.push(d);
     updates.push(`retention_days = $${values.length}`);
-    updates.push(`expires_at = created_at + ($${values.length} || ' days')::interval`);
+    updates.push(`expires_at = created_at + make_interval(days => $${values.length})`);
   }
   if (body.name?.trim()) {
     values.push(body.name.trim());

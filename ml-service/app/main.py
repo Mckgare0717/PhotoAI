@@ -54,11 +54,25 @@ async def detect(image: UploadFile = File(...)):
     if img is None:
         raise HTTPException(status_code=422, detail="could not decode image")
 
-    faces = get_analyzer().get(img)
+    # The detector struggles below ~VGA resolution (common for webcam selfie
+    # captures); upscale small inputs before detection. Bounding boxes are
+    # reported in the ORIGINAL image's coordinate space.
+    scale = 1.0
+    smaller_dim = min(img.shape[0], img.shape[1])
+    if smaller_dim < 480:
+        scale = 480.0 / smaller_dim
+        img_det = cv2.resize(
+            img, (round(img.shape[1] * scale), round(img.shape[0] * scale)),
+            interpolation=cv2.INTER_CUBIC,
+        )
+    else:
+        img_det = img
+
+    faces = get_analyzer().get(img_det)
 
     results = []
     for face in faces:
-        x1, y1, x2, y2 = (float(v) for v in face.bbox)
+        x1, y1, x2, y2 = (float(v) / scale for v in face.bbox)
         results.append(
             {
                 "bounding_box": {"x1": x1, "y1": y1, "x2": x2, "y2": y2},

@@ -35,7 +35,7 @@ export async function POST(req: Request) {
   const slug = randomBytes(6).toString("base64url");
   const { rows } = await pool.query(
     `INSERT INTO events (name, event_date, slug, retention_days, expires_at, lawful_basis)
-     VALUES ($1, $2, $3, $4, now() + ($4 || ' days')::interval, $5)
+     VALUES ($1, $2, $3, $4, now() + make_interval(days => $4), $5)
      RETURNING *`,
     [body.name.trim(), body.eventDate || null, slug, retention, body.lawfulBasis?.trim() || null]
   );
