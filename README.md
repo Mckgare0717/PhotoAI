@@ -89,8 +89,10 @@ guests see strangers (e.g. siblings/lookalikes), lower to ~0.35 to catch more.
   via "Delete my face data" (fresh selfie → matching vectors deleted; the
   selfie follows the same discard rule).
 - **Retention**: events auto-expire (default 90 days, per-event tunable up to
-  365). Expired events return `410` to guests; `npm run cleanup` (cron it
-  daily) hard-deletes expired events, embeddings, and files.
+  365). Expired events return `410` to guests. Hard-delete expired events,
+  embeddings, and files daily via either `npm run cleanup` (local/dev) or the
+  HTTP endpoint (works in the production Docker image):
+  `curl -fsS -X POST -H "x-admin-password: $ADMIN_PASSWORD" https://your-host/api/admin/cleanup`
 - **Lawful basis**: organizers can record their lawful basis per event in the
   admin UI (e.g. explicit consent collected at event sign-in).
 - **Scoped access**: guests only ever receive short-lived HMAC-signed URLs to
@@ -98,6 +100,34 @@ guests see strangers (e.g. siblings/lookalikes), lower to ~0.35 to catch more.
   signature. No cross-event matching anywhere.
 - **Rate limiting** on guest search and deletion endpoints (10 requests /
   5 min / IP) to deter scraping-by-selfie.
+
+## Deploying to production
+
+1. **Secrets**: set a strong `ADMIN_PASSWORD` and `SESSION_SECRET`
+   (`openssl rand -hex 32`). Never deploy the defaults — file-URL signing and
+   sessions both key off `SESSION_SECRET`.
+2. **HTTPS + domain**: put a reverse proxy (Caddy is the least config) in
+   front of `web:3000` with TLS. Set `NEXT_PUBLIC_BASE_URL=https://your-domain`
+   **before building** the web image so QR codes and share links are correct.
+   Allow large request bodies on the proxy (e.g. nginx
+   `client_max_body_size 200m`) for bulk uploads.
+3. **Keep internals private**: only the web app should be exposed. The
+   compose file binds Postgres and the ML service to loopback; don't undo
+   that — the ML service is unauthenticated by design.
+4. **Backups**: the `db-data` and `photo-storage` volumes are the system of
+   record. Back both up (originals are irreplaceable event photos).
+5. **Cron the retention job** (see Privacy section above).
+6. **Rate-limit trust**: the limiter reads `x-forwarded-for`, which is only
+   trustworthy behind your proxy. Make sure the proxy overwrites (not
+   appends to) the client-supplied header.
+7. **GDPR paperwork** (the app gives you the tooling, not the compliance):
+   record a lawful basis per event in the admin UI, put consent
+   signage/notice at the event, publish a privacy notice with a contact for
+   erasure requests, and — since this is biometric data — a DPIA is expected
+   under UK GDPR before go-live.
+8. **Tune with real photos**: run a real event's photos through and adjust
+   the per-event threshold (see "Similarity threshold" above) before guests
+   use it.
 
 ## Environment variables (web)
 
