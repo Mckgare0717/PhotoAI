@@ -31,7 +31,29 @@ Create an A record (Route 53 or your registrar): `photos.yourdomain.com` →
 the Elastic IP. Caddy needs this resolving before first start to issue the
 TLS certificate.
 
-## 3. Install Docker and the app
+## 3. Give the instance access to the repo (deploy key)
+
+The repo is private, so the instance needs credentials to clone it. Use a
+read-only deploy key — it grants access to this one repo and nothing else:
+
+```bash
+# on the EC2 instance
+ssh-keygen -t ed25519 -C "photoai-ec2-deploy" -f ~/.ssh/photoai_deploy -N ""
+cat ~/.ssh/photoai_deploy.pub
+```
+
+Add the printed public key on GitHub: **repo → Settings → Deploy keys →
+Add deploy key** (leave "Allow write access" unchecked). Then point SSH at it:
+
+```bash
+cat >> ~/.ssh/config <<'EOF'
+Host github.com
+  IdentityFile ~/.ssh/photoai_deploy
+  IdentitiesOnly yes
+EOF
+```
+
+## 4. Install Docker and the app
 
 SSH in, then:
 
@@ -41,7 +63,7 @@ curl -fsSL https://get.docker.com | sudo sh
 sudo usermod -aG docker ubuntu && newgrp docker
 
 # App
-git clone https://github.com/<you>/PhotoAI.git && cd PhotoAI
+git clone git@github.com:<you>/PhotoAI.git && cd PhotoAI
 
 # Secrets — NEVER commit this file
 cat > .env <<EOF
@@ -59,7 +81,7 @@ docker compose -f docker-compose.prod.yml up -d --build
 First build takes ~10 minutes (the ML image downloads the ~300MB InsightFace
 model). Then visit `https://photos.yourdomain.com/admin`.
 
-## 4. Retention cron
+## 5. Retention cron
 
 ```bash
 crontab -e
@@ -67,7 +89,7 @@ crontab -e
 0 3 * * * . /home/ubuntu/PhotoAI/.env && curl -fsS -X POST -H "x-admin-password: $ADMIN_PASSWORD" https://$DOMAIN/api/admin/cleanup >> /var/log/photoai-cleanup.log 2>&1
 ```
 
-## 5. Backups
+## 6. Backups
 
 Photos and the database live in Docker volumes on the root EBS volume, so
 EBS snapshots cover everything. Set a daily policy with Data Lifecycle
@@ -83,7 +105,7 @@ aws dlm create-lifecycle-policy \
 
 (tag the instance's volume with `app=photoai` for this to match).
 
-## 6. Updating the app
+## 7. Updating the app
 
 ```bash
 cd ~/PhotoAI && git pull
