@@ -1,0 +1,65 @@
+# Production stack: everything private except Caddy on 80/443.
+# Usage: docker compose -f docker-compose.prod.yml up -d --build
+# Requires a .env file next to this file — see deploy/README.md.
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: photoai
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+      POSTGRES_DB: photoai
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U photoai"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  ml-service:
+    build: ./ml-service
+    restart: unless-stopped
+    environment:
+      DET_SIZE: "960"
+
+  web:
+    build: ./web
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://photoai:${DB_PASSWORD}@db:5432/photoai
+      ML_SERVICE_URL: http://ml-service:8000
+      STORAGE_DIR: /data/storage
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?set ADMIN_PASSWORD in .env}
+      SESSION_SECRET: ${SESSION_SECRET:?set SESSION_SECRET in .env}
+      NEXT_PUBLIC_BASE_URL: https://${DOMAIN:?set DOMAIN in .env}
+    volumes:
+      - photo-storage:/data/storage
+    depends_on:
+      db:
+        condition: service_healthy
+      ml-service:
+        condition: service_started
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL in .env}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - web
+
+volumes:
+  db-data:
+  photo-storage:
+  caddy-data:
+  caddy-config:
