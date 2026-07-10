@@ -1,0 +1,18 @@
+{
+	email {$ACME_EMAIL}
+}
+
+{$DOMAIN} {
+	# Bulk photo uploads: the admin UI sends batches of 5 files up to 30MB each.
+	request_body {
+		max_size 200MB
+	}
+
+	reverse_proxy web:3000
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
+}
