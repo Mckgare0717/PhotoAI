@@ -103,9 +103,10 @@ guests see strangers (e.g. siblings/lookalikes), lower to ~0.35 to catch more.
 
 ## Deploying to production
 
-**AWS**: see [`deploy/README.md`](deploy/README.md) for a step-by-step
-EC2 (London) guide using `docker-compose.prod.yml` + Caddy for HTTPS.
-The checklist below applies to any host:
+Step-by-step provider guides live in [`deploy/`](deploy/README.md):
+**Oracle Cloud Always Free** (recommended, £0/month, London) or **AWS EC2**.
+Both use `docker-compose.prod.yml` + Caddy for HTTPS. The checklist below
+applies to any host:
 
 1. **Secrets**: set a strong `ADMIN_PASSWORD` and `SESSION_SECRET`
    (`openssl rand -hex 32`). Never deploy the defaults — file-URL signing and
