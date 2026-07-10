@@ -1,0 +1,33 @@
+{
+  "name": "photoai-web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "cleanup": "tsx scripts/cleanup-expired.ts"
+  },
+  "dependencies": {
+    "archiver": "^7.0.1",
+    "next": "^15.3.3",
+    "pg": "^8.12.0",
+    "qrcode": "^1.5.4",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "sharp": "^0.34.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.7",
+    "@types/archiver": "^6.0.2",
+    "@types/node": "^22",
+    "@types/pg": "^8.11.6",
+    "@types/qrcode": "^1.5.5",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "tailwindcss": "^4.1.7",
+    "tsx": "^4.19.2",
+    "typescript": "^5"
+  }
+}
