@@ -25,6 +25,10 @@ export default function EventDashboard() {
 
   const load = useCallback(async () => {
     const res = await fetch("/api/admin/events");
+    if (res.status === 401) {
+      window.location.href = "/admin/login";
+      return;
+    }
     if (res.ok) {
       const body = await res.json();
       setEvents(body.events);

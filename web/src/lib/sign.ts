@@ -10,6 +10,9 @@ import { SESSION_SECRET } from "./config";
 const DEFAULT_TTL_SECONDS = 60 * 60; // 1 hour
 
 function sig(storagePath: string, exp: number): string {
+  // Never sign (or verify) with an empty key — that would make every guest
+  // photo URL forgeable in a misconfigured deployment.
+  if (!SESSION_SECRET) throw new Error("SESSION_SECRET must be set to serve files");
   return createHmac("sha256", SESSION_SECRET)
     .update(`file.${storagePath}.${exp}`)
     .digest("hex")
@@ -23,6 +26,7 @@ export function signFileUrl(storagePath: string, ttlSeconds = DEFAULT_TTL_SECOND
 }
 
 export function verifyFileSig(storagePath: string, exp: number, provided: string): boolean {
+  if (!SESSION_SECRET) return false;
   if (!Number.isFinite(exp) || exp * 1000 < Date.now()) return false;
   const expected = sig(storagePath, exp);
   const a = Buffer.from(provided);

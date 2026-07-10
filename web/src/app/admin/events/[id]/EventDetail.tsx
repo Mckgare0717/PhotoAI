@@ -43,6 +43,10 @@ export default function EventDetail({ eventId }: { eventId: string }) {
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/admin/events/${eventId}`);
+    if (res.status === 401) {
+      window.location.href = "/admin/login";
+      return;
+    }
     if (res.ok) setData(await res.json());
   }, [eventId]);
 

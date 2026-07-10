@@ -43,6 +43,7 @@ export async function POST(req: Request, { params }: Params) {
 
   const archive = archiver("zip", { zlib: { level: 1 } });
   const stream = new PassThrough();
+  archive.on("error", (err) => stream.destroy(err));
   archive.pipe(stream);
 
   void (async () => {
@@ -58,7 +59,7 @@ export async function POST(req: Request, { params }: Params) {
       }
     }
     await archive.finalize();
-  })();
+  })().catch((err) => stream.destroy(err instanceof Error ? err : new Error(String(err))));
 
   const eventName = String(rows[0].name).replace(/[^a-zA-Z0-9-_ ]/g, "").trim() || "photos";
   return new NextResponse(Readable.toWeb(stream) as unknown as ReadableStream, {
